@@ -174,14 +174,19 @@ typedef struct {
 class DFRobot_BME280 {
 public:
     /*!
-    *   @brief  constructors
+    *   @brief  SPI constructor
     */
-    DFRobot_BME280(int8_t cspin = -1);
+    explicit DFRobot_BME280(int8_t cspin);
+
+    /*!
+    *   @brief  I2C constructor
+    */
+    explicit DFRobot_BME280(TwoWire* wire, uint8_t address = BME280_ADDRESS);
 
     /*!
     *   @brief  Initialise
     */
-    bool  begin(uint8_t addr = BME280_ADDRESS);
+    bool  begin();
 
     void takeForcedMeasurement();
 
@@ -235,11 +240,13 @@ private:
     uint16_t  read16_LE(byte reg); // little endian
     int16_t   readS16_LE(byte reg); // little endian
 
-    uint8_t   i2caddr;
+    TwoWire* const  wire;
+    const uint8_t   i2caddr;
+
+    const int8_t    cs;
+
     int32_t   sensorID;
     int32_t   fine;
-
-    int8_t cs;
 
     tBme280CalibData bme280Calib;
     tConfig configReg;
