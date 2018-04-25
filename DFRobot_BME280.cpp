@@ -12,18 +12,19 @@
  */
 #include <DFRobot_BME280.h>
 
-DFRobot_BME280::DFRobot_BME280(int8_t cspin)
-    : cs(cspin)
+DFRobot_BME280::DFRobot_BME280(int8_t cspin) :
+    cs(cspin), wire(nullptr), i2caddr(-1)
 { }
 
+DFRobot_BME280::DFRobot_BME280(TwoWire* wire, uint8_t i2caddr) :
+    cs(-1), wire(wire), i2caddr(i2caddr)
+{ }
 
-bool DFRobot_BME280::begin(uint8_t addr)
+bool DFRobot_BME280::begin()
 {
-    i2caddr = addr;
-
-    if (cs == -1) {
+    if (wire != nullptr) {
         // I2C
-        Wire.begin();
+        wire->begin();
     } else {
         pinMode(cs, OUTPUT);
         SPI.begin();
@@ -72,7 +73,6 @@ void DFRobot_BME280::setSampling(eSensorMode       mode,
     configReg.filter = filter;
     configReg.sb   = duration;
 
-
     ///< you must make sure to also set REGISTER_CONTROL after setting the
     ///< CONTROLHUMID register, otherwise the values won't be applied (see DS 5.4.3)
     write8(BME280_REGISTER_CONTROLHUMID, humReg.get());
@@ -86,16 +86,16 @@ void DFRobot_BME280::setSampling(eSensorMode       mode,
 */
 void DFRobot_BME280::write8(byte reg, byte value)
 {
-    if (cs == -1) {
-        Wire.beginTransmission(i2caddr);
+    if (wire != nullptr) {
+        wire->beginTransmission(i2caddr);
     #if ARDUINO >= 100
-        Wire.write((uint8_t)reg);
-        Wire.write((uint8_t)value);
+        wire->write((uint8_t)reg);
+        wire->write((uint8_t)value);
     #else
-        Wire.send((uint8_t)reg);
-        Wire.send((uint8_t)value);
+        wire->send((uint8_t)reg);
+        wire->send((uint8_t)value);
     #endif        
-        Wire.endTransmission();
+        wire->endTransmission();
     } else {
         SPI.beginTransaction(SPISettings(500000, MSBFIRST, SPI_MODE0));
         digitalWrite(cs, LOW);
@@ -114,19 +114,19 @@ uint8_t DFRobot_BME280::read8(byte reg)
 {
     uint8_t value;
 
-    if (cs == -1) {
-        Wire.beginTransmission(i2caddr);
+    if (wire != nullptr) {
+        wire->beginTransmission(i2caddr);
     #if ARDUINO >= 100
-        Wire.write((uint8_t)reg);
+        wire->write((uint8_t)reg);
     #else
-        Wire.send((uint8_t)reg);
+        wire->send((uint8_t)reg);
     #endif
-        Wire.endTransmission();
-        Wire.requestFrom(i2caddr, (byte)1);
+        wire->endTransmission();
+        wire->requestFrom(i2caddr, (byte)1);
     #if ARDUINO >= 100
-        value = Wire.read();
+        value = wire->read();
     #else
-        value = Wire.receive();
+        value = wire->receive();
     #endif
     } else {
         SPI.beginTransaction(SPISettings(500000, MSBFIRST, SPI_MODE0));
@@ -148,19 +148,19 @@ uint16_t DFRobot_BME280::read16(byte reg)
 {
     uint16_t value;
 
-    if (cs == -1) {
-        Wire.beginTransmission(i2caddr);
+    if (wire != nullptr) {
+        wire->beginTransmission(i2caddr);
     #if ARDUINO >= 100
-        Wire.write((uint8_t)reg);
+        wire->write((uint8_t)reg);
     #else
-        Wire.send((uint8_t)reg);
+        wire->send((uint8_t)reg);
     #endif
-        Wire.endTransmission();
-        Wire.requestFrom(i2caddr, (byte)2);
+        wire->endTransmission();
+        wire->requestFrom(i2caddr, (byte)2);
     #if ARDUINO >= 100
-        value = (Wire.read() << 8) | Wire.read();
+        value = (wire->read() << 8) | wire->read();
     #else
-        value = (Wire.receive() << 8) | Wire.receive();
+        value = (wire->receive() << 8) | wire->receive();
     #endif
     } else {
         SPI.beginTransaction(SPISettings(500000, MSBFIRST, SPI_MODE0));
@@ -205,28 +205,28 @@ uint32_t DFRobot_BME280::read24(byte reg)
 {
     uint32_t value;
 
-    if (cs == -1) {
-        Wire.beginTransmission(i2caddr);
+    if (wire != nullptr) {
+        wire->beginTransmission(i2caddr);
     #if ARDUINO >= 100
-        Wire.write((uint8_t)reg);
+        wire->write((uint8_t)reg);
     #else
-        Wire.send((uint8_t)reg);
+        wire->send((uint8_t)reg);
     #endif
-        Wire.endTransmission();
-        Wire.requestFrom(i2caddr, (byte)3);
+        wire->endTransmission();
+        wire->requestFrom(i2caddr, (byte)3);
         
     #if ARDUINO >= 100
-        value = Wire.read();
+        value = wire->read();
         value <<= 8;
-        value |= Wire.read();
+        value |= wire->read();
         value <<= 8;
-        value |= Wire.read();
+        value |= wire->read();
     #else
-        value = Wire.receive();
+        value = wire->receive();
         value <<= 8;
-        value |= Wire.receive();
+        value |= wire->receive();
         value <<= 8;
-        value |= Wire.receive();
+        value |= wire->receive();
     #endif
     } else {
         SPI.beginTransaction(SPISettings(500000, MSBFIRST, SPI_MODE0));
